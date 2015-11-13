@@ -154,6 +154,8 @@ path_filter_dir(".hg")  -> false;
 path_filter_dir(".svn") -> false;
 path_filter_dir("CVS")  -> false;
 path_filter_dir("log")  -> false;
+path_filter_dir("rel")  -> false;
+path_filter_dir("_rel") -> false;
 path_filter_dir(_)      -> true.
 
 path_filter_file(".rebarinfo")     -> false;   % new rebars
@@ -166,4 +168,8 @@ path_filter_ext(".app")            -> false;
 path_filter_ext(".jpg")            -> false;
 path_filter_ext(".png")            -> false;
 path_filter_ext(".gif")            -> false;
+path_filter_ext(".erl~")           -> false;  % emacs temp file
+path_filter_ext(".erl#")           -> false;
+path_filter_ext(".swp")            -> false;
+path_filter_ext([])                -> false;  % file with no extension
 path_filter_ext(_)                 -> true.
