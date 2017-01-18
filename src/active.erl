@@ -54,13 +54,13 @@ maybe_app(App, Path) ->
     EnabledApps = application:get_env(active, apps, undefined),
     case EnabledApps of
         undefined ->
-%            mad:info("App ~p Path ~p~n",[App,Path]),
+            mad:info("App ~p Path ~p~n",[App,Path]),
             app(App, Path);
         {ok,L} when is_list(L) ->
             AppAtom = list_to_atom(App),
             case lists:member(AppAtom, L) of
                 true ->
-%                    mad:info("App ~p Path ~p~n",[App,Path]),
+                    mad:info("App ~p Path ~p~n",[App,Path]),
                     app(App, Path);
                 false ->
                     skip
@@ -72,22 +72,39 @@ app(_App,["priv","fdlink"++_])  -> skip;
 app(_App,["priv","mac"++_])     -> skip;
 app(_App,["priv","windows"++_]) -> skip;
 app(_App,["priv","linux"++_])   -> skip;
-app(_App,["priv","static"|_])   -> skip;
-app( App,["priv"|Rest])         -> compile(App,Rest);
+app( App,["priv","static"|_]=P) -> load_static(App,P);
+app( App,["priv","lang"|_]=P)   -> load_lang(App,P);
+app( App,["priv"|Rest]=P)       -> compile(App,P);
 app( App,["include"|Rest])      -> compile(App,Rest);
 app( App,["src"|Rest])          -> compile(App,Rest);
 app(_,_)-> ok.
 
 top() -> lists:last(filename:split(fs:path())).
 
+compile(App,["priv"|Rest]=P) ->
+    case filename:extension(Rest) of
+     ".dat"    -> load_routes(App,P);
+     ".routes" -> load_routes(App,P);
+             _ -> compile(App,Rest) end;
 compile(App,Rest) ->
-    case lists:last(Rest) of
-         ".#" ++ _ -> skip;
-             _ -> try put(App,updated),
-                      mad_compile:compile(App)
-                catch E:R ->
-                      mad:info("~p", [erlang:get_stacktrace()]),
-                      mad:info("Catch: ~p:~p",[E,R]) end end.
+     case lists:last(Rest) of
+      ".#" ++ _ -> skip;
+          _ -> try put(App,updated),
+                   mad_compile:compile(App)
+             catch E:R ->
+                   mad:info("~p", [erlang:get_stacktrace()]),
+                   mad:info("Catch: ~p:~p",[E,R]) end end.
+
+load_lang(App, Path) -> 
+    %mad:info("Active: reload lang ~p:~p", [App,Path]),
+    active_events:notify_reload({lang, {App, Path}}).
+
+load_routes(App, Path) -> 
+    %mad:info("Active: reload routes ~p:~p", [App,Path]),
+    active_events:notify_reload({routes, {App, Path}}).
+
+load_static(App, Path) -> 
+    active_events:notify_reload({static, {App, Path}}).
 
 load_ebin(_App, EName) ->
     case lists:reverse(EName) of
